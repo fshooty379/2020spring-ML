@@ -6,14 +6,16 @@ import pickle
 from sklearn.metrics import accuracy_score,f1_score
 #加载数据集
 from sklearn.datasets import fetch_20newsgroups
-
-categories = ['alt.atheism', 'talk.religion.misc', 'sci.space']
+#挑选部分数据集来进行bug测试
+categories = ['alt.atheism', 'comp.sys.ibm.pc.hardware','comp.sys.mac.hardware',
+              'talk.religion.misc','sci.electronics', 'soc.religion.christian',
+              'rec.sport.baseball', 'sci.space','talk.politics.guns', 'sci.med']
 #训练集
-newsgroups_train = fetch_20newsgroups(subset='train',categories=categories)
-#newsgroups_train = fetch_20newsgroups(subset='train')
+#newsgroups_train = fetch_20newsgroups(subset='train',categories=categories,remove='header')
+newsgroups_train = fetch_20newsgroups(subset='train',remove='header')
 #测试集
-newsgroups_test = fetch_20newsgroups(subset='test',categories=categories)
-#newsgroups_test = fetch_20newsgroups(subset='test')
+#newsgroups_test = fetch_20newsgroups(subset='test',categories=categories,remove='header')
+newsgroups_test = fetch_20newsgroups(subset='test',remove='header')
 
 
 #导入本地停用词表
@@ -21,18 +23,19 @@ with open("D:\大二下_课程资料\机器学习实验\skl\stopwords.txt", "rb"
     stpwrdlst = f.read()
 #将文本转为TF-IDF向量
 from sklearn.feature_extraction.text import TfidfVectorizer
-# 停用词为stopwords.txt，全部转换为小写，提取tfidf特征（词频、逆文档频率）应用于稀疏矩阵
-vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features = 1000)
-#转换为tf-idf向量之后的数据
+# 停用词为stopwords.txt，全部转换为小写，选择词频为前5000的作为特征，构造稀疏矩阵
+vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=5000)
+#训练集对应稀疏矩阵
 vectors_train = vectorizer.fit_transform(newsgroups_train.data)
+#测试集对应稀疏矩阵
 vectors_test = vectorizer.transform(newsgroups_test.data)
-# 训练集转换后的向量大小
+# 训练集转换后的矩阵大小
 print(vectors_train.shape)
-# 测试集转换后的向量大小
+# 测试集转换后的矩阵大小
 print(vectors_test.shape)
 # 非零特征的个数
-print(vectors_train.nnz / float(vectors_train.shape[0]))
-print(vectors_test.nnz / float(vectors_test.shape[0]))
+#print(vectors_train.nnz / float(vectors_train.shape[0]))
+#print(vectors_test.nnz / float(vectors_test.shape[0]))
 
 train_x = vectors_train #训练集数据
 train_y = newsgroups_train.target # 训练集标签
@@ -42,9 +45,9 @@ test_y = newsgroups_test.target #测试集标签
 
 
 class perceptron:
-    '''learningRate是学习率，即是每次更新权重和截距的步长'''
 
     def __init__(self, learningRate=1):
+        # learningRate是学习率，即是每次更新权重和截距的步长
         self.learningRare = learningRate
         self.w = 0
         self.b = 0
@@ -60,7 +63,7 @@ class perceptron:
         #print(data.indptr)
         #print(data.indices)
         print('Start training')
-        # 对样本进行变换得到一列列向量
+        # 对稀疏矩阵进行解压缩变换得到一列列向量
         for i in range(row):
             m = np.zeros([col,1])
             bound = data.indptr[i+1]
@@ -73,17 +76,16 @@ class perceptron:
 
             # 梯度下降进行计算
             result = (np.dot(self.w, m) + self.b) * target[i]
-            print("计算之后的结果为：")
-            print(result)
+            #print("计算之后的结果为：")
+            #print(result)
 
             if result <= 0:
                 # print('分类错误')
                 self.w = self.w + target[i] * data[i] * self.learningRare
                 self.b = self.b + target[i] * self.learningRare
-                print("调整之后的参数为：")
+                #print("调整之后的参数为：")
                 # print(self.w)
-                print(self.b)
-
+                #print(self.b)
 
         print("最终的参数")
         print(self.w)
@@ -112,45 +114,53 @@ class perceptron:
 
 if __name__ == "__main__":
 
-    model = []
-    score = {}
-    accuracy = {}
-    for i in range(3):
+    model = [] # 保存20个感知机
+    score = {} # 保存每个感知机得分
+    accuracy = {} # 保存每个感知机准确率
+    for i in range(20): # 训练20个感知机
         copy_train_y = train_y
         copy_test_y = test_y
-        for j in range(train_y.shape[0]):
-            if copy_train_y[j] == i:
+        for j in range(copy_train_y.shape[0]): #对每一个分类统一化
+            if copy_train_y[j] == i:    # 符合该分类为1
                 copy_train_y[j] = 1
-            else:
+            else:                       # 非该分类为-1
                 copy_train_y[j] = -1
-        for j in range(test_y.shape[0]):
+        for j in range(copy_test_y.shape[0]):
             if copy_test_y[j] == i:
                 copy_test_y[j] = 1
             else:
                 copy_test_y[j] = -1
+        print('echo :'+str(i+1))
         model = perceptron(learningRate=1)
         model.train(train_x, copy_train_y)
         pred = model.predict(test_x)
+        计算得分与准确率
         score[i] = f1_score(copy_test_y, pred, average='macro')
         accuracy[i] =accuracy_score(copy_test_y, pred)
+    #保存模型、得分、准确率
     pickle.dump(model, open('per_models.pkl', 'wb'))
     pickle.dump(score,open('per_score.pkl','wb'))
     pickle.dump(accuracy, open('per_accurarcy.pkl', 'wb'))
+
+
+    # 计算平均评价指标
     sum_score = 0
     sum_accuracy= 0
-    for i in range(3):
+    for i in range(20):
         sum_score = sum_score + score[i]
         sum_accuracy = sum_accuracy + accuracy[i]
-    print('score = '+str(sum_score/3.0))
-    print('accuracy = '+str(sum_accuracy/3.0))
+    print('score = '+str(sum_score/20.0))
+    print('accuracy = '+str(sum_accuracy/20.0))
 
     '''
+    #测试单个感知机
     model = perceptron(learningRate=1)
     model.train(train_x, train_y)
     pred = model.predict(test_x)
     pickle.dump(model, open('per_models.pkl', 'wb'))
-    '''
     #print('score = '+str(f1_score(test_y, pred, average='macro')))
     #print('accuracy = '+str(accuracy_score(test_y, pred)))
+    '''
+
     print('end')
 
