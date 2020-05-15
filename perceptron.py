@@ -3,18 +3,19 @@
 
 import numpy as np
 import pickle
+#引入评估函数
 from sklearn.metrics import accuracy_score,f1_score
 #加载数据集
 from sklearn.datasets import fetch_20newsgroups
-#挑选部分数据集来进行bug测试
+#挑选部分数据集来进行测试
 categories = ['alt.atheism', 'comp.sys.ibm.pc.hardware', 'comp.sys.mac.hardware', 'talk.religion.misc']
 
 #训练集
 #newsgroups_train = fetch_20newsgroups(subset='train',categories=categories,remove='header')
-newsgroups_train = fetch_20newsgroups(subset='train',remove='header')
+newsgroups_train = fetch_20newsgroups(subset='train', remove='header')
 #测试集
 #newsgroups_test = fetch_20newsgroups(subset='test',categories=categories,remove='header')
-newsgroups_test = fetch_20newsgroups(subset='test',remove='header')
+newsgroups_test = fetch_20newsgroups(subset='test', remove='header')
 
 
 #导入本地停用词表
@@ -23,7 +24,7 @@ with open("D:\大二下_课程资料\机器学习实验\skl\stopwords.txt", "rb"
 #将文本转为TF-IDF向量
 from sklearn.feature_extraction.text import TfidfVectorizer
 # 停用词为stopwords.txt，全部转换为小写，选择词频为前5000的作为特征，构造稀疏矩阵
-vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=10000)
+vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=5000)
 #训练集对应稀疏矩阵
 vectors_train = vectorizer.fit_transform(newsgroups_train.data)
 #测试集对应稀疏矩阵
@@ -72,11 +73,10 @@ class perceptron:
                 m[data.indices[j]] = data.data[j]
                 #print('indices = '+str(data.indices[j]))
 
-            # 梯度下降进行计算
+            # 梯度下降法
             result = (np.dot(self.w, m) + self.b) * target[i]
             #print("计算之后的结果为：")
             #print(result)
-
             if result <= 0:
                 # print('分类错误')
                 self.w = self.w + target[i] * m * self.learningRare
@@ -89,7 +89,7 @@ class perceptron:
         print(self.w)
         print(self.b)
 
-    def predict(self,data):
+    def predict(self, data):
         print('Start predicting')
         pred_labels = []
         row = data.shape[0]
@@ -100,7 +100,7 @@ class perceptron:
             bound_1 = data.indptr[i+1]
             for j in range(bound_0, bound_1):
                 m[data.indices[j]] = data.data[j]
-
+            # 分类预测
             result = np.dot(self.w, m) + self.b
             if result > 0:
                 pred_labels.append(1)
@@ -112,17 +112,17 @@ class perceptron:
 
 if __name__ == "__main__":
 
-    model = [] # 保存20个感知机
+    model = [] # 保存感知机
     score = {} # 保存每个感知机得分
     accuracy = {} # 保存每个感知机准确率
-    classes = np.unique(train_y)
+    classes = np.unique(train_y) # 去掉多余项，得到分类的种类数
     #print(classes)
     class_num = len(classes)
     #print('class_num = ' +str(len(classes)))
-    for i in range(class_num): # 训练20个感知机
-        copy_train_y = train_y
-        copy_test_y = test_y
-        for j in range(copy_train_y.shape[0]): #对每一个分类统一化
+    for i in range(class_num): # 训练多个感知机
+        copy_train_y = train_y.copy()
+        copy_test_y = test_y.copy()
+        for j in range(copy_train_y.shape[0]): #对每一个分类统一化使用 one VS rest方法
             if copy_train_y[j] == i:    # 符合该分类为1
                 copy_train_y[j] = 1
             else:                       # 非该分类为-1
@@ -140,10 +140,9 @@ if __name__ == "__main__":
         score[i] = f1_score(copy_test_y, pred, average='macro')
         accuracy[i] =accuracy_score(copy_test_y, pred)
     #保存模型、得分、准确率
-    #pickle.dump(model, open('per_models.pkl', 'wb'))
-    #pickle.dump(score,open('per_score.pkl','wb'))
-    #pickle.dump(accuracy, open('per_accurarcy.pkl', 'wb'))
-
+    pickle.dump(model, open('per_models.pkl', 'wb'))
+    pickle.dump(score,open('per_score.pkl','wb'))
+    pickle.dump(accuracy, open('per_accurarcy.pkl', 'wb'))
 
     # 计算平均评价指标
     sum_score = 0
@@ -151,8 +150,8 @@ if __name__ == "__main__":
     for i in range(class_num):
         sum_score = sum_score + score[i]
         sum_accuracy = sum_accuracy + accuracy[i]
-    print('score = '+str(sum_score/float(class_num)))
-    print('accuracy = '+str(sum_accuracy/float(class_num)))
+    print('average_score = '+str(sum_score/float(class_num)))
+    print('average_accuracy = '+str(sum_accuracy/float(class_num)))
 
     '''
     #测试单个感知机
@@ -163,6 +162,5 @@ if __name__ == "__main__":
     #print('score = '+str(f1_score(test_y, pred, average='macro')))
     #print('accuracy = '+str(accuracy_score(test_y, pred)))
     '''
-
     print('end')
 
