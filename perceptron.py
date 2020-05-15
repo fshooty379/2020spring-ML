@@ -7,9 +7,8 @@ from sklearn.metrics import accuracy_score,f1_score
 #加载数据集
 from sklearn.datasets import fetch_20newsgroups
 #挑选部分数据集来进行bug测试
-categories = ['alt.atheism', 'comp.sys.ibm.pc.hardware','comp.sys.mac.hardware',
-              'talk.religion.misc','sci.electronics', 'soc.religion.christian',
-              'rec.sport.baseball', 'sci.space','talk.politics.guns', 'sci.med']
+categories = ['alt.atheism', 'comp.sys.ibm.pc.hardware', 'comp.sys.mac.hardware', 'talk.religion.misc']
+
 #训练集
 #newsgroups_train = fetch_20newsgroups(subset='train',categories=categories,remove='header')
 newsgroups_train = fetch_20newsgroups(subset='train',remove='header')
@@ -24,7 +23,7 @@ with open("D:\大二下_课程资料\机器学习实验\skl\stopwords.txt", "rb"
 #将文本转为TF-IDF向量
 from sklearn.feature_extraction.text import TfidfVectorizer
 # 停用词为stopwords.txt，全部转换为小写，选择词频为前5000的作为特征，构造稀疏矩阵
-vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=5000)
+vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=15000)
 #训练集对应稀疏矩阵
 vectors_train = vectorizer.fit_transform(newsgroups_train.data)
 #测试集对应稀疏矩阵
@@ -55,7 +54,7 @@ class perceptron:
     def train(self, data, target):
         row = data.shape[0]
         col = data.shape[1]
-        self.w = np.zeros([1, col])
+        self.w = np.zeros(col)
         #print(row)
         #print(col)
         # indptr表示矩阵中每一行的数据在data中开始和结束的索引
@@ -63,13 +62,12 @@ class perceptron:
         #print(data.indptr)
         #print(data.indices)
         print('Start training')
-        # 对稀疏矩阵进行解压缩变换得到一列列向量
+        # 对稀疏矩阵进行解压缩变换得到一行向量
         for i in range(row):
-            m = np.zeros([col,1])
-            bound = data.indptr[i+1]
-            #print(bound)
-            j = 0
-            for j in range(bound):
+            m = np.zeros(col)
+            bound_0 = data.indptr[i]
+            bound_1 = data.indptr[i+1]
+            for j in range(bound_0, bound_1):
                 #print(j)
                 m[data.indices[j]] = data.data[j]
                 #print('indices = '+str(data.indices[j]))
@@ -81,7 +79,7 @@ class perceptron:
 
             if result <= 0:
                 # print('分类错误')
-                self.w = self.w + target[i] * data[i] * self.learningRare
+                self.w = self.w + target[i] * m * self.learningRare
                 self.b = self.b + target[i] * self.learningRare
                 #print("调整之后的参数为：")
                 # print(self.w)
@@ -97,13 +95,13 @@ class perceptron:
         row = data.shape[0]
         col = data.shape[1]
         for i in range(row):
-            m = np.zeros([col,1])
-            bound = data.indptr[i+1]
-            j = 0
-            for j in range(bound):
+            m = np.zeros(col)
+            bound_0 = data.indptr[i]
+            bound_1 = data.indptr[i+1]
+            for j in range(bound_0, bound_1):
                 m[data.indices[j]] = data.data[j]
 
-            result = np.dot(self.w,m) + self.b
+            result = np.dot(self.w, m) + self.b
             if result > 0:
                 pred_labels.append(1)
             else:
@@ -130,17 +128,17 @@ if __name__ == "__main__":
                 copy_test_y[j] = 1
             else:
                 copy_test_y[j] = -1
-        print('echo :'+str(i+1))
+        print('epoch : '+str(i+1))
         model = perceptron(learningRate=1)
         model.train(train_x, copy_train_y)
         pred = model.predict(test_x)
-        计算得分与准确率
+        #计算得分与准确率
         score[i] = f1_score(copy_test_y, pred, average='macro')
         accuracy[i] =accuracy_score(copy_test_y, pred)
     #保存模型、得分、准确率
-    pickle.dump(model, open('per_models.pkl', 'wb'))
-    pickle.dump(score,open('per_score.pkl','wb'))
-    pickle.dump(accuracy, open('per_accurarcy.pkl', 'wb'))
+    #pickle.dump(model, open('per_models.pkl', 'wb'))
+    #pickle.dump(score,open('per_score.pkl','wb'))
+    #pickle.dump(accuracy, open('per_accurarcy.pkl', 'wb'))
 
 
     # 计算平均评价指标
