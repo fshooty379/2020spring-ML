@@ -23,7 +23,7 @@ with open("D:\大二下_课程资料\机器学习实验\skl\stopwords.txt", "rb"
 #将文本转为TF-IDF向量
 from sklearn.feature_extraction.text import TfidfVectorizer
 # 停用词为stopwords.txt，全部转换为小写，选择词频为前5000的作为特征，构造稀疏矩阵
-vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=15000)
+vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=10000)
 #训练集对应稀疏矩阵
 vectors_train = vectorizer.fit_transform(newsgroups_train.data)
 #测试集对应稀疏矩阵
@@ -115,7 +115,11 @@ if __name__ == "__main__":
     model = [] # 保存20个感知机
     score = {} # 保存每个感知机得分
     accuracy = {} # 保存每个感知机准确率
-    for i in range(20): # 训练20个感知机
+    classes = np.unique(train_y)
+    #print(classes)
+    class_num = len(classes)
+    #print('class_num = ' +str(len(classes)))
+    for i in range(class_num): # 训练20个感知机
         copy_train_y = train_y
         copy_test_y = test_y
         for j in range(copy_train_y.shape[0]): #对每一个分类统一化
@@ -144,11 +148,11 @@ if __name__ == "__main__":
     # 计算平均评价指标
     sum_score = 0
     sum_accuracy= 0
-    for i in range(20):
+    for i in range(class_num):
         sum_score = sum_score + score[i]
         sum_accuracy = sum_accuracy + accuracy[i]
-    print('score = '+str(sum_score/20.0))
-    print('accuracy = '+str(sum_accuracy/20.0))
+    print('score = '+str(sum_score/float(class_num)))
+    print('accuracy = '+str(sum_accuracy/float(class_num)))
 
     '''
     #测试单个感知机
