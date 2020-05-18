@@ -23,7 +23,7 @@ with open("D:\大二下_课程资料\机器学习实验\skl\stopwords.txt", "rb"
 #将文本转为TF-IDF向量
 from sklearn.feature_extraction.text import TfidfVectorizer
 # 停用词为stopwords.txt，全部转换为小写，选择词频为前5000的作为特征，构造稀疏矩阵
-vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=20000)
+vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=10000)
 #训练集对应稀疏矩阵
 vectors_train = vectorizer.fit_transform(newsgroups_train.data)
 #测试集对应稀疏矩阵
@@ -47,6 +47,7 @@ class perceptron:
 
     def __init__(self, learningRate, epoches):
         # learningRate是学习率，即是每次更新权重和截距的步长
+        # epoches是训练次数
         self.learningRare = learningRate
         self.w = 0
         self.b = 0
@@ -57,12 +58,8 @@ class perceptron:
             row = data.shape[0]
             col = data.shape[1]
             self.w = np.zeros(col)
-            #print(row)
-            #print(col)
             # indptr表示矩阵中每一行的数据在data中开始和结束的索引
             # indices中表示所对应的在data中的数据在矩阵中其所在行的所在列数。
-            #print(data.indptr)
-            #print(data.indices)
             print('Start training')
             # 对稀疏矩阵进行解压缩变换得到一行向量
             for i in range(row):
@@ -70,10 +67,7 @@ class perceptron:
                 bound_0 = data.indptr[i]
                 bound_1 = data.indptr[i+1]
                 for j in range(bound_0, bound_1):
-                    #print(j)
                     m[data.indices[j]] = data.data[j]
-                    #print('indices = '+str(data.indices[j]))
-
                 # 梯度下降法
                 result = (np.dot(self.w, m) + self.b) * target[i]
                 #print("计算之后的结果为：")
@@ -85,29 +79,9 @@ class perceptron:
                     #print("调整之后的参数为：")
                     # print(self.w)
                     #print(self.b)
-
         #print("最终的参数")
         #print(self.w)
         #print(self.b)
-
-    def predict(self, data):
-        print('Start predicting')
-        pred_labels = []
-        row = data.shape[0]
-        col = data.shape[1]
-        for i in range(row):
-            m = np.zeros(col)
-            bound_0 = data.indptr[i]
-            bound_1 = data.indptr[i+1]
-            for j in range(bound_0, bound_1):
-                m[data.indices[j]] = data.data[j]
-            # 分类预测
-            result = np.dot(self.w, m) + self.b
-            if result > 0:
-                pred_labels.append(1)
-            else:
-                pred_labels.append(-1)
-        return pred_labels
 
 def predict_final(data, w, b):
     print('Start predicting')
@@ -125,31 +99,25 @@ def predict_final(data, w, b):
         # 分类预测
         for k in range(20):  # 20组w和b
             result = np.dot(w[k], m) + b[k]
-            if result > 0:  # 如果分里超平面结果为正
+            if result > 0:  # 如果分离超平面结果为正
                 right.append(k)  # 存入初步正确的分类数组中，k为类别号
-                norm = np.linalg.norm(w[k], ord=2, keepdims=True)
-                lens[k] = (result / norm)
+                norm = np.linalg.norm(w[k], ord=2, keepdims=True) #L2范数
+                lens[k] = (result / norm) #求误分类点到超平面的距离
         # print(right) #初步判断文本属于哪一类
-        # print(lens)
-        max_lens = max(lens)
+        max_lens = max(lens) #找出最大距离
         # print(max_lens)
         for z in range(lens.shape[0]):
             if lens[z] == max_lens:
-                pred_labels[i] = z
-
+                pred_labels[i] = z  #得到最大距离对应的类别
     return pred_labels
 
 if __name__ == "__main__":
 
-    model = [] # 保存感知机
-    score = {} # 保存每个感知机得分
-    accuracy = {} # 保存每个感知机准确率
     classes = np.unique(train_y) # 去掉多余项，得到分类的种类数
-    #print(classes)
     class_num = len(classes)
+    # 保存每个感知机的w和b
     w =[]
     b = []
-    #print('class_num = ' +str(len(classes)))
     for i in range(class_num): # 训练多个感知机
         copy_train_y = train_y.copy()
         copy_test_y = test_y.copy()
@@ -173,8 +141,8 @@ if __name__ == "__main__":
     #print(b)
     pred = predict_final(test_x, w, b)
     pred = np.array(pred)
-    print(pred)
-    print(test_y)
+    #print(pred)
+    #print(test_y)
     print('perceptron_f1_score = '+str(f1_score(test_y, pred, average='macro')))
     print('perceptron_accuracy = '+str(accuracy_score(test_y, pred)))
 
