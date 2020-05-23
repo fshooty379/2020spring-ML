@@ -23,7 +23,7 @@ with open("D:\大二下_课程资料\机器学习实验\skl\stopwords.txt", "rb"
 #将文本转为TF-IDF向量
 from sklearn.feature_extraction.text import TfidfVectorizer
 # 停用词为stopwords.txt，全部转换为小写，选择词频为前5000的作为特征，构造稀疏矩阵
-vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=10000)
+vectorizer = TfidfVectorizer(stop_words=stpwrdlst,lowercase=True,max_features=20000)
 #训练集对应稀疏矩阵
 vectors_train = vectorizer.fit_transform(newsgroups_train.data)
 #测试集对应稀疏矩阵
@@ -89,8 +89,11 @@ def predict_final(data, w, b):
     row = data.shape[0]
     col = data.shape[1]
     right = []  # 保存分离超平面时结果为正的分类
+    wrong = []  # 保存分离超平面时结果为负的分类
+    flag = np.zeros(row)
     for i in range(row):
         lens = np.zeros(20)
+        lens_wrong = np.zeros(20)
         m = np.zeros(col)
         bound_0 = data.indptr[i]
         bound_1 = data.indptr[i + 1]
@@ -100,15 +103,26 @@ def predict_final(data, w, b):
         for k in range(20):  # 20组w和b
             result = np.dot(w[k], m) + b[k]
             if result > 0:  # 如果分离超平面结果为正
+                flag[i] = 1
                 right.append(k)  # 存入初步正确的分类数组中，k为类别号
                 norm = np.linalg.norm(w[k], ord=2, keepdims=True) #L2范数
                 lens[k] = (result / norm) #求误分类点到超平面的距离
-        # print(right) #初步判断文本属于哪一类
-        max_lens = max(lens) #找出最大距离
-        # print(max_lens)
-        for z in range(lens.shape[0]):
-            if lens[z] == max_lens:
-                pred_labels[i] = z  #得到最大距离对应的类别
+            else:
+                wrong.append(k)
+                norm = np.linalg.norm(w[k], ord=2, keepdims=True)  # L2范数
+                lens_wrong[k] = (result / norm)  # 求误分类点到超平面的距离
+        if flag[i] == 1:
+            # print(right) #初步判断文本属于哪一类
+            max_lens = max(lens) #找出最大距离
+            # print(max_lens)
+            for z in range(lens.shape[0]):
+                if lens[z] == max_lens:
+                    pred_labels[i] = z  #得到最大距离对应的类别
+        if flag[i] == 0: #如果所有感知机都判断为非本类
+            max_lens_wrong = max(lens_wrong)
+            for z in range(lens_wrong.shape[0]):
+                if lens_wrong[z] == max_lens_wrong:
+                    pred_labels[i] = z
     return pred_labels
 
 if __name__ == "__main__":
@@ -132,7 +146,7 @@ if __name__ == "__main__":
             else:
                 copy_test_y[j] = -1
         print('第'+str(i+1)+'类')
-        model = perceptron(learningRate=1, epoches=3)
+        model = perceptron(learningRate=1, epoches=4)
         model.train(train_x, copy_train_y)
         w.append(model.w)
         b.append(model.b)
